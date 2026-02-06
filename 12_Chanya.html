@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POSITIF NEGATIF</title>
+</head>
+<body>
+    <input type="text" id="input"><button
+    onclick="cekAngka()">Check Angka</button>
+    <p>Masukkan bilangan: <h4 id="angka"></h4></p>
+</body>
+<script>
+    const input = document.getElementById("input");
+    const angka = document.getElementById("")
+    function positifNegatif (input){
+       if (input < 0) {
+        return "Negatif";
+       } else if (input > 0); {
+        return "Positif";
+       } else {
+        return "Nol";
+       }}
+    function cekAngka (){console.log(input.value)
+    angka.innerHTML = positifNegatif(input.value)}
+</script>
+</html>
