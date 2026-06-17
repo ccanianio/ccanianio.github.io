@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi Sorting - Duel Logika</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        .box-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .active-left {
+            background-color: #ef4444 !important; border-color: #f87171 !important; color: white;
+            transform: translateY(-10px) scale(1.1); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.5);
+        }
+        .active-right {
+            background-color: #3b82f6 !important; border-color: #60a5fa !important; color: white;
+            transform: translateY(-10px) scale(1.1); box-shadow: 0 10px 20px rgba(59, 130, 246, 0.5);
+        }
+        .pivot-item {
+            background-color: #a855f7 !important; border-color: #c084fc !important; color: white;
+            transform: scale(1.05); box-shadow: 0 0 15px #a855f7;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col font-sans select-none">
+
+    <nav class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center px-6">
+        <a href="index.html" class="text-slate-400 hover:text-white transition">&larr; Kembali ke Menu</a>
+        <h1 class="text-xl font-bold text-cyan-400">📊 Visualisasi & Game Real Konsep Sorting</h1>
+        <div class="w-20"></div>
+    </nav>
+
+    <div class="bg-slate-800/50 p-6 border-b border-slate-800 grid md:grid-cols-5 gap-4 items-end">
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Pilih Jenis Sorting</label>
+            <select id="algoSelect" class="w-full bg-slate-700 text-white rounded-lg p-2.5 border border-slate-600 focus:outline-none focus:border-cyan-500">
+                <option value="bubble">Bubble Sort (Gelembung)</option>
+                <option value="selection">Selection Sort (Cari Terkecil)</option>
+                <option value="insertion">Insertion Sort (Pemain Kartu)</option>
+                <option value="merge">Merge Sort (Belah & Gabung)</option>
+                <option value="quick">Quick Sort (Sistem Poros/Pivot)</option>
+                <option value="tim">Tim Sort (Hybrid Cerdas)</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Mode Operasi</label>
+            <select id="playMode" class="w-full bg-slate-700 text-white rounded-lg p-2.5 border border-slate-600 focus:outline-none focus:border-cyan-500">
+                <option value="player">🎮 Mode Kamu (Uji Logika)</option>
+                <option value="computer">🤖 Mode Komputer (Otomatis)</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Kecepatan Simulasi</label>
+            <input type="range" id="speedRange" min="100" max="1000" value="600" class="w-full accent-cyan-400">
+        </div>
+        <div class="flex gap-2 col-span-2">
+            <button id="resetBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 font-bold py-2.5 px-4 rounded-lg transition">Acak Angka Baru</button>
+            <button id="startCompBtn" class="flex-1 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-2.5 px-4 rounded-lg transition hidden">Jalankan Otomatis</button>
+        </div>
+    </div>
+
+    <div class="bg-slate-950 px-8 py-3 border-b border-slate-800 flex justify-around text-sm font-mono">
+        <div>Total Perbandingan: <span id="stepsText" class="text-cyan-400 font-bold text-lg">0</span> kali</div>
+        <div>Skor Benar Kamu: <span id="scoreText" class="text-emerald-400 font-bold text-lg">0</span></div>
+    </div>
+
+    <main class="flex-grow flex items-center justify-center gap-4 p-8 bg-slate-950 min-h-[300px] overflow-x-auto" id="arrayContainer">
+        </main>
+
+    <div id="decisionPanel" class="bg-slate-900 p-6 border-t border-slate-800 flex flex-col items-center justify-center gap-4">
+        <p id="instructionText" class="text-slate-300 text-center font-medium max-w-2xl leading-relaxed min-h-[60px]">
+            Pilih metode lalu klik tombol mulai.
+        </p>
+        <div id="actionButtons" class="flex gap-4 w-full max-w-md">
+            <button id="btnLeftActive" class="flex-1 bg-red-600 hover:bg-red-500 font-bold py-4 px-6 rounded-xl transition transform active:scale-95 flex flex-col items-center justify-center text-center">
+                <span id="btnLeftText">PILIH MERAH</span>
+            </button>
+            <button id="btnRightActive" class="flex-1 bg-blue-600 hover:bg-blue-500 font-bold py-4 px-6 rounded-xl transition transform active:scale-95 flex flex-col items-center justify-center text-center">
+                <span id="btnRightText">PILIH BIRU</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('arrayContainer');
+        const algoSelect = document.getElementById('algoSelect');
+        const playMode = document.getElementById('playMode');
+        const speedRange = document.getElementById('speedRange');
+        const resetBtn = document.getElementById('resetBtn');
+        const startCompBtn = document.getElementById('startCompBtn');
+        const instructionText = document.getElementById('instructionText');
+        const actionButtons = document.getElementById('actionButtons');
+        const btnLeftActive = document.getElementById('btnLeftActive');
+        const btnRightActive = document.getElementById('btnRightActive');
+        const btnLeftText = document.getElementById('btnLeftText');
+        const btnRightText = document.getElementById('btnRightText');
+        const scoreText = document.getElementById('scoreText');
+        const stepsText = document.getElementById('stepsText');
+
+        let array = [];
+        const size = 8; 
+        let totalSteps = 0;
+        let correctScores = 0;
+        let isSorting = false;
+
+        let currentCompareResolve = null;
+        let currentLeftIdx = -1, currentRightIdx = -1;
+        let currentPivotIdx = null;
+        let currentExpectedAnswer = null;
+
+        function initGame() {
+            isSorting = false;
+            currentCompareResolve = null;
+            totalSteps = 0;
+            correctScores = 0;
+            stepsText.innerText = "0";
+            scoreText.innerText = "0";
+
+            currentLeftIdx = -1;
+            currentRightIdx = -1;
+            currentPivotIdx = null;
+
+            array = [];
+            for (let i = 0; i < size; i++) {
+                array.push(Math.floor(Math.random() * 89) + 10);
+            }
+
+            renderBoxes();
+            updateModeUI();
+        }
+
+        function renderBoxes() {
+            container.innerHTML = '';
+            array.forEach((num, index) => {
+                const box = document.createElement('div');
+                box.className = "box-item w-16 h-16 bg-slate-800 border-2 border-slate-700 text-slate-200 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xl shadow-lg shrink-0";
+                
+                if (index === currentLeftIdx) box.classList.add('active-left');
+                else if (index === currentRightIdx) box.classList.add('active-right');
+                else if (index === currentPivotIdx) box.classList.add('pivot-item');
+
+                box.innerHTML = `<span>${num}</span><span class="text-[9px] text-slate-500">[${index}]</span>`;
+                container.appendChild(box);
+            });
+        }
+
+        function updateModeUI() {
+            const mode = playMode.value;
+            const algo = algoSelect.value;
+
+            if (algo === 'selection') {
+                btnLeftText.innerText = "MERAH LEBIH KECIL";
+                btnRightText.innerText = "BIRU LEBIH KECIL";
+            } else if (algo === 'quick') {
+                btnLeftText.innerText = "LEBIH KECIL DARI PIVOT";
+                btnRightText.innerText = "LEBIH BESAR DARI PIVOT";
+            } else if (algo === 'merge' || algo === 'tim') {
+                btnLeftText.innerText = "AMBIL MERAH";
+                btnRightText.innerText = "AMBIL BIRU";
+            } else {
+                btnLeftText.innerText = "KIRI LEBIH BESAR (>)";
+                btnRightText.innerText = "KANAN LEBIH BESAR (>)";
+            }
+
+            if (mode === 'player') {
+                startCompBtn.classList.add('hidden');
+                actionButtons.classList.remove('hidden');
+                startSortingEngine();
+            } else {
+                startCompBtn.classList.remove('hidden');
+                actionButtons.classList.add('hidden');
+                instructionText.innerHTML = `[🤖 MODE KOMPUTER] Klik tombol <b>'Jalankan Otomatis'</b> untuk melihat visualisasi pergeseran data.`;
+            }
+        }
+
+        async function startSortingEngine() {
+            isSorting = true;
+            const algo = algoSelect.value;
+
+            if (algo === 'bubble') await bubbleSort();
+            else if (algo === 'selection') await selectionSort();
+            else if (algo === 'insertion') await insertionSort();
+            else if (algo === 'merge') await mergeSort(0, array.length - 1);
+            else if (algo === 'quick') await quickSort(0, array.length - 1);
+            else if (algo === 'tim') await timSort();
+
+            finishSorting();
+        }
+
+        function askConceptQuestion(left, right, pivot = null, type = 'normal') {
+            totalSteps++;
+            stepsText.innerText = totalSteps;
+            
+            currentLeftIdx = left;
+            currentRightIdx = right;
+            currentPivotIdx = pivot;
+
+            renderBoxes();
+
+            if (type === 'selection') {
+                currentExpectedAnswer = array[left] < array[right];
+                instructionText.innerHTML = `🔍 <b>Selection Sort:</b> Bandingkan Juara Kecil Sementara <span class="text-red-400 font-bold">Merah (${array[left]})</span> dengan kandidat <span class="text-blue-400 font-bold">Biru (${array[right]})</span>. Siapa yang lebih KECIL?`;
+            } else if (type === 'quick') {
+                currentExpectedAnswer = array[left] < array[pivot];
+                instructionText.innerHTML = `⚡ <b>Quick Sort:</b> Apakah angka target <span class="text-red-400 font-bold">Merah (${array[left]})</span> nilainya LEBIH KECIL dari Poros/Pivot <span class="text-purple-400 font-bold">Ungu (${array[pivot]})</span>?`;
+            } else if (type === 'merge') {
+                currentExpectedAnswer = array[left] <= array[right];
+                instructionText.innerHTML = `🧩 <b>Merge Sort:</b> Pilih angka terkecil untuk masuk ke barisan utama: <br> <span class="text-red-400 font-bold">Merah (${array[left]})</span> atau <span class="text-blue-400 font-bold">Biru (${array[right]})</span>?`;
+            } else if (type === 'insertion') {
+                currentExpectedAnswer = array[left] > array[right];
+                instructionText.innerHTML = `🃏 <b>Insertion Sort:</b> Apakah kartu kiri <span class="text-red-400 font-bold">Merah (${array[left]})</span> lebih besar dari kartu kanan <span class="text-blue-400 font-bold">Biru (${array[right]})</span>? Jika YA, geser Merah ke kanan!`;
+            } else {
+                currentExpectedAnswer = array[left] > array[right];
+                instructionText.innerHTML = `🧼 <b>Bubble Sort:</b> Apakah <span class="text-red-400 font-bold">Merah (${array[left]})</span> lebih besar dari <span class="text-blue-400 font-bold">Biru (${array[right]})</span>? Jika YA, tukar tempat!`;
+            }
+
+            return new Promise(resolve => {
+                currentCompareResolve = resolve;
+                if (playMode.value === 'computer') {
+                    setTimeout(() => {
+                        currentCompareResolve = null;
+                        resolve(currentExpectedAnswer);
+                    }, 1100 - speedRange.value);
+                }
+            });
+        }
+
+        function handleHumanDecision(userChoseLeft) {
+            if (!currentCompareResolve || playMode.value !== 'player') return;
+
+            if (userChoseLeft === currentExpectedAnswer) {
+                correctScores++;
+                scoreText.innerText = correctScores;
+                instructionText.innerHTML = `<span class="text-emerald-400 font-bold">✨ Mantap! Logikamu Tepat.</span> Menyusun ulang barisan...`;
+            } else {
+                instructionText.innerHTML = `<span class="text-rose-400 font-bold">❌ Kurang Pas!</span> Tapi sistem tetap menata sesuai aturan algoritme asli agar berurutan...`;
+            }
+
+            let oldResolve = currentCompareResolve;
+            currentCompareResolve = null;
+            oldResolve(currentExpectedAnswer);
+        }
+
+        function finishSorting() {
+            isSorting = false;
+            currentLeftIdx = -1; currentRightIdx = -1; currentPivotIdx = null;
+            instructionText.innerHTML = "🎉 <b>BERHASIL!</b> Konsep sorting selesai dijalankan. Seluruh data sekarang berurutan sempurna dari terkecil ke terbesar.";
+            let boxes = container.children;
+            for(let b of boxes) {
+                b.className = "box-item w-16 h-16 bg-emerald-600 border-2 border-emerald-400 text-white rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xl shadow animate-pulse shrink-0";
+            }
+        }
+
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        // --- ALGORITMA SORTING MURNI ---
+
+        async function bubbleSort() {
+            let n = array.length;
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n - i - 1; j++) {
+                    let swapRequired = await askConceptQuestion(j, j + 1, null, 'bubble');
+                    if (swapRequired) {
+                        let t = array[j]; array[j] = array[j+1]; array[j+1] = t;
+                        renderBoxes(); await sleep(300);
+                    }
+                }
+            }
+        }
+
+        async function selectionSort() {
+            let n = array.length;
+            for (let i = 0; i < n; i++) {
+                let minIdx = i;
+                for (let j = i + 1; j < n; j++) {
+                    let isCurrentMinSmaller = await askConceptQuestion(minIdx, j, null, 'selection');
+                    if (!isCurrentMinSmaller) {
+                        minIdx = j;
+                        renderBoxes();
+                    }
+                }
+                if (minIdx !== i) {
+                    let t = array[i]; array[i] = array[minIdx]; array[minIdx] = t;
+                    renderBoxes(); await sleep(400);
+                }
+            }
+        }
+
+        async function insertionSort() {
+            let n = array.length;
+            for (let i = 1; i < n; i++) {
+                let j = i;
+                while (j > 0) {
+                    let leftIsGreater = await askConceptQuestion(j - 1, j, null, 'insertion');
+                    if (leftIsGreater) {
+                        let t = array[j]; array[j] = array[j-1]; array[j-1] = t;
+                        renderBoxes(); await sleep(300);
+                        j--;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        async function mergeSort(l, r) {
+            if (l < r) {
+                let m = Math.floor((l + r) / 2);
+                await mergeSort(l, m);
+                await mergeSort(m + 1, r);
+                await merge(l, m, r);
+            }
+        }
+
+        async function merge(l, m, r) {
+            let leftArr = array.slice(l, m + 1);
+            let rightArr = array.slice(m + 1, r + 1);
+            
+            let tempResult = [];
+            let i = 0, j = 0;
+
+            while (i < leftArr.length && j < rightArr.length) {
+                let realLeftIdx = l + i;
+                let realRightIdx = m + 1 + j;
+                
+                let takeLeft = await askConceptQuestion(realLeftIdx, realRightIdx, null, 'merge');
+                
+                if (takeLeft) {
+                    tempResult.push(leftArr[i]);
+                    i++;
+                } else {
+                    tempResult.push(rightArr[j]);
+                    j++;
+                }
+            }
+
+            while (i < leftArr.length) {
+                tempResult.push(leftArr[i]);
+                i++;
+            }
+            while (j < rightArr.length) {
+                tempResult.push(rightArr[j]);
+                j++;
+            }
+
+            // Memasukkan kembali hasil urut dari array bayangan ke memori utama secara berkala
+            for (let x = 0; x < tempResult.length; x++) {
+                array[l + x] = tempResult[x];
+                renderBoxes(); 
+                await sleep(150);
+            }
+        }
+
+        async function quickSort(l, h) {
+            let stack = [[l, h]];
+            while (stack.length > 0) {
+                let [low, high] = stack.pop();
+                if (low >= high) continue;
+
+                let pivotVal = array[high];
+                let i = low - 1;
+                
+                for (let j = low; j < high; j++) {
+                    let targetIsSmaller = await askConceptQuestion(j, null, high, 'quick');
+                    if (targetIsSmaller) {
+                        i++;
+                        let t = array[i]; array[i] = array[j]; array[j] = t;
+                        renderBoxes(); await sleep(200);
+                    }
+                }
+                let t = array[i+1]; array[i+1] = array[high]; array[high] = t;
+                renderBoxes(); await sleep(250);
+                let pIdx = i + 1;
+
+                stack.push([pIdx + 1, high]);
+                stack.push([low, pIdx - 1]);
+            }
+        }
+
+        async function timSort() {
+            let n = array.length; let RUN = 4;
+            for (let i = 0; i < n; i += RUN) {
+                let end = Math.min(i + RUN - 1, n - 1);
+                for (let j = i + 1; j <= end; j++) {
+                    let k = j;
+                    while (k > i) {
+                        let leftIsGreater = await askConceptQuestion(k - 1, k, null, 'insertion');
+                        if (leftIsGreater) {
+                            let t = array[k]; array[k] = array[k-1]; array[k-1] = t;
+                            renderBoxes(); await sleep(200); k--;
+                        } else break;
+                    }
+                }
+            }
+            for (let size = RUN; size < n; size = 2 * size) {
+                for (let left = 0; left < n; left += 2 * size) {
+                    let mid = left + size - 1; let right = Math.min((left + 2 * size - 1), (n - 1));
+                    if (mid < right) await merge(left, mid, right);
+                }
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        playMode.addEventListener('change', initGame);
+        algoSelect.addEventListener('change', initGame);
+        resetBtn.addEventListener('click', initGame);
+        
+        startCompBtn.addEventListener('click', () => {
+            if (playMode.value === 'computer' && !isSorting) startSortingEngine();
+        });
+
+        btnLeftActive.addEventListener('click', () => handleHumanDecision(true));
+        btnRightActive.addEventListener('click', () => handleHumanDecision(false));
+
+        initGame();
+    </script>
+</body>
+</html>

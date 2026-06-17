@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi Searching - Mode Interaktif</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col font-sans">
+
+    <nav class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center px-6">
+        <a href="index.html" class="text-slate-400 hover:text-white transition">&larr; Kembali ke Menu</a>
+        <h1 class="text-xl font-bold text-emerald-400">🔍 Game & Visualisasi Searching</h1>
+        <div class="w-20"></div>
+    </nav>
+
+    <div class="bg-slate-800/50 p-6 border-b border-slate-800 grid md:grid-cols-5 gap-4 items-end">
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Metode Data & Algoritma</label>
+            <select id="searchAlgo" class="w-full bg-slate-700 text-white rounded-lg p-2.5 border border-slate-600 focus:outline-none focus:border-emerald-500">
+                <option value="linear">Data Acak (Linear Search)</option>
+                <option value="binary">Data Terurut (Binary Search)</option>
+                <option value="interpolation">Data Terurut (Interpolation Search)</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Angka Sasaran (Target)</label>
+            <div id="targetDisplay" class="w-full bg-slate-950 border border-slate-700 text-center text-xl font-extrabold text-amber-400 py-1.5 rounded-lg">
+                -
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Mode Bermain</label>
+            <select id="playMode" class="w-full bg-slate-700 text-white rounded-lg p-2.5 border border-slate-600 focus:outline-none focus:border-emerald-500">
+                <option value="player">1. Main Mandiri (Tebak Sendiri)</option>
+                <option value="computer">2. Tonton Komputer (Otomatis)</option>
+            </select>
+        </div>
+        <div class="flex gap-2 col-span-2">
+            <button id="regenBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 font-bold py-2.5 px-4 rounded-lg transition">Acak/Reset Papan</button>
+            <button id="startCompBtn" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-bold py-2.5 px-4 rounded-lg transition hidden">Jalankan Sistem</button>
+        </div>
+    </div>
+
+    <div class="bg-slate-950 px-8 py-3 border-b border-slate-800 flex justify-around text-sm font-mono">
+        <div>Langkah Kamu (Manusia): <span id="playerClicks" class="text-cyan-400 font-bold text-lg">0</span> klik</div>
+        <div>Langkah Komputer: <span id="compClicks" class="text-purple-400 font-bold text-lg">0</span> cek</div>
+    </div>
+
+    <main class="flex-grow flex flex-wrap items-center justify-center content-center gap-3 p-8 bg-slate-950" id="arrayContainer">
+        </main>
+
+    <div class="bg-slate-800 p-4 border-t border-slate-700 text-center text-sm text-slate-300">
+        <span id="searchStatus" class="text-emerald-400 font-semibold">Memuat...</span>
+    </div>
+
+    <script>
+        const container = document.getElementById('arrayContainer');
+        const searchAlgo = document.getElementById('searchAlgo');
+        const targetDisplay = document.getElementById('targetDisplay');
+        const playMode = document.getElementById('playMode');
+        const regenBtn = document.getElementById('regenBtn');
+        const startCompBtn = document.getElementById('startCompBtn');
+        const searchStatus = document.getElementById('searchStatus');
+        const playerClicksSpan = document.getElementById('playerClicks');
+        const compClicksSpan = document.getElementById('compClicks');
+
+        let arrayData = [];
+        const size = 24; 
+        let targetValue = 0;
+        let isSearching = false;
+        let pClicks = 0;
+        let gameFinished = false;
+
+        function initGame() {
+            if (isSearching) return;
+            arrayData = [];
+            pClicks = 0;
+            gameFinished = false;
+            playerClicksSpan.innerText = "0";
+            compClicksSpan.innerText = "0";
+
+            // 1. Generate Angka Unik
+            while(arrayData.length < size) {
+                let num = Math.floor(Math.random() * 89) + 10;
+                if(!arrayData.includes(num)) arrayData.push(num);
+            }
+
+            // 2. Jika mode memerlukan data terurut (Binary atau Interpolation)
+            if (searchAlgo.value === 'binary' || searchAlgo.value === 'interpolation') {
+                arrayData.sort((a, b) => a - b);
+            }
+
+            // 3. Ambil target dari isi array agar pasti ada di dalam kotak
+            targetValue = arrayData[Math.floor(Math.random() * size)];
+            targetDisplay.innerText = targetValue;
+
+            renderBoard();
+
+            // 4. Interface Setup
+            if (playMode.value === 'player') {
+                startCompBtn.classList.add('hidden');
+                searchStatus.innerText = `[MODE MANUSIA] Angka target adalah ${targetValue}. Silakan klik kotak misteri di bawah untuk mencarinya!`;
+            } else {
+                startCompBtn.classList.remove('hidden');
+                searchStatus.innerText = `[MODE KOMPUTER] Klik tombol 'Jalankan Sistem' untuk melihat bagaimana komputer mencari angka ${targetValue}.`;
+            }
+        }
+
+        function renderBoard() {
+            container.innerHTML = '';
+            const mode = playMode.value;
+
+            arrayData.forEach((num, index) => {
+                const box = document.createElement('div');
+                box.dataset.index = index;
+                box.dataset.value = num;
+                
+                if (mode === 'player') {
+                    box.className = "w-14 h-14 bg-slate-800 hover:bg-slate-700 border-2 border-dashed border-slate-600 rounded-xl flex items-center justify-center font-mono font-bold text-xl text-cyan-400 cursor-pointer transition-all duration-150 transform hover:scale-105";
+                    box.innerText = "?";
+                    box.addEventListener('click', () => handlePlayerClick(box, num, index));
+                } else {
+                    box.className = "w-14 h-14 bg-slate-800 border border-slate-700 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-slate-200 shadow";
+                    box.innerHTML = `<span>${num}</span><span class="text-[9px] text-slate-500">[${index}]</span>`;
+                }
+
+                container.appendChild(box);
+            });
+        }
+
+        // --- GAMEPLAY MANUSIA ---
+        function handlePlayerClick(box, value, index) {
+            if (gameFinished || playMode.value !== 'player') return;
+            if (box.classList.contains('bg-slate-950') || box.classList.contains('bg-emerald-500')) return;
+
+            pClicks++;
+            playerClicksSpan.innerText = pClicks;
+
+            if (value === targetValue) {
+                gameFinished = true;
+                box.className = "w-14 h-14 bg-emerald-500 border-2 border-emerald-400 text-slate-950 rounded-xl flex flex-col items-center justify-center font-mono font-bold shadow-lg scale-110 animate-bounce";
+                box.innerHTML = `<span>${value}</span><span class="text-[9px] text-slate-900">[${index}]</span>`;
+                searchStatus.innerText = `🎉 SELAMAT! Kamu berhasil menemukan angka ${targetValue} di indeks [${index}] dengan total ${pClicks} kali klik!`;
+            } else {
+                let clue = "";
+                if(searchAlgo.value === 'binary' || searchAlgo.value === 'interpolation') {
+                    clue = value < targetValue ? " (Terlalu KECIL, cari di kanan)" : " (Terlalu BESAR, cari di kiri)";
+                }
+
+                box.className = "w-14 h-14 bg-slate-950 border border-slate-800 text-slate-600 rounded-xl flex flex-col items-center justify-center font-mono font-bold opacity-50";
+                box.innerHTML = `<span>${value}</span><span class="text-[9px] text-slate-700">[${index}]</span>`;
+                searchStatus.innerText = `Bukan ${value}! Coba cari di kotak lain.${clue}`;
+            }
+        }
+
+        // --- SIMULASI SISTEM KOMPUTER ---
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        async function runComputerSearch() {
+            if (isSearching) return;
+            isSearching = true;
+            renderBoard(); 
+            let boxes = container.children;
+            let cClicks = 0;
+
+            if (searchAlgo.value === 'linear') {
+                // 1. LINEAR SEARCH
+                for (let i = 0; i < arrayData.length; i++) {
+                    cClicks++;
+                    compClicksSpan.innerText = cClicks;
+                    boxes[i].className = "w-14 h-14 bg-amber-500 text-slate-950 rounded-xl flex flex-col items-center justify-center font-mono font-bold shadow scale-105";
+                    searchStatus.innerText = `Komputer mencari di indeks [${i}] -> Apakah ${arrayData[i]} === ${targetValue}?`;
+                    await wait(350);
+
+                    if (arrayData[i] === targetValue) {
+                        boxes[i].className = "w-14 h-14 bg-purple-500 text-white rounded-xl flex flex-col items-center justify-center font-mono font-bold shadow-lg scale-110";
+                        searchStatus.innerText = `Komputer menemukan angka ${targetValue} di indeks [${i}] dalam ${cClicks} kali pemeriksaan!`;
+                        isSearching = false;
+                        return;
+                    }
+                    boxes[i].className = "w-14 h-14 bg-slate-950 border border-slate-800 text-slate-600 rounded-xl flex flex-col items-center justify-center font-mono font-bold opacity-40";
+                }
+            } 
+            else if (searchAlgo.value === 'binary') {
+                // 2. BINARY SEARCH
+                let low = 0;
+                let high = arrayData.length - 1;
+
+                while (low <= high) {
+                    cClicks++;
+                    compClicksSpan.innerText = cClicks;
+
+                    for(let k = 0; k < boxes.length; k++) {
+                        if(k < low || k > high) boxes[k].className = "w-14 h-14 bg-slate-950 border border-slate-800 text-slate-600 rounded-xl flex flex-col items-center justify-center font-mono font-bold opacity-30";
+                    }
+
+                    let mid = Math.floor((low + high) / 2);
+                    boxes[mid].className = "w-14 h-14 bg-amber-500 text-slate-950 rounded-xl flex flex-col items-center justify-center font-mono font-bold shadow-lg scale-105";
+                    searchStatus.innerText = `Batas ruang cari: Indeks [${low}] hingga [${high}]. Komputer memeriksa posisi tengah (Mid): indeks [${mid}].`;
+                    await wait(900);
+
+                    if (arrayData[mid] === targetValue) {
+                        boxes[mid].className = "w-14 h-14 bg-purple-500 text-white rounded-xl flex flex-col items-center justify-center font-mono font-bold shadow-lg scale-110";
+                        searchStatus.innerText = `Komputer menemukan angka ${targetValue} di posisi indeks [${mid}] dengan ${cClicks} langkah melalui Binary Search!`;
+                        isSearching = false;
+                        return;
+                    }
+
+                    if (arrayData[mid] < targetValue) {
+                        searchStatus.innerText = `Karena ${arrayData[mid]} < ${targetValue}, komputer mengeliminasi area kiri.`;
+                        low = mid + 1;
+                    } else {
+                        searchStatus.innerText = `Karena ${arrayData[mid]} > ${targetValue}, komputer mengeliminasi area kanan.`;
+                        high = mid - 1;
+                    }
+                    await wait(600);
+                }
+            } 
+            else if (searchAlgo.value === 'interpolation') {
+                // 3. INTERPOLATION SEARCH
+                let low = 0;
+                let high = arrayData.length - 1;
+
+                while (low <= high && targetValue >= arrayData[low] && targetValue <= arrayData[high]) {
+                    cClicks++;
+                    compClicksSpan.innerText = cClicks;
+
+                    for(let k = 0; k < boxes.length; k++) {
+                        if(k < low || k > high) boxes[k].className = "w-14 h-14 bg-slate-950 border border-slate-800 text-slate-600 rounded-xl flex flex-col items-center justify-center font-mono font-bold opacity-30";
+                    }
+
+                    // Rumus posisi estimasi Interpolation Search:
+                    // pos = low + [ (target - arr[low]) * (high - low) / (arr[high] - arr[low]) ]
+                    let pos = low + Math.floor(((targetValue - arrayData[low]) * (high - low)) / (arrayData[high] - arrayData[low]));
+                    
+                    // Antisipasi error kalkulasi posisi di luar indeks luar batas
+                    if (pos < low || pos > high) break;
+
+                    boxes[pos].className = "w-14 h-14 bg-amber-500 text-slate-950 rounded-xl flex flex-col items-center justify-center font-mono font-bold shadow-lg scale-105";
+                    searchStatus.innerText = `Interpolasi rumus memperkirakan angka berada di posisi indeks [${pos}].`;
+                    await wait(1000);
+
+                    if (arrayData[pos] === targetValue) {
+                        boxes[pos].className = "w-14 h-14 bg-purple-500 text-white rounded-xl flex flex-col items-center justify-center font-mono font-bold shadow-lg scale-110";
+                        searchStatus.innerText = `Komputer menemukan angka ${targetValue} di indeks [${pos}] dalam hanya ${cClicks} langkah estimasi rumus!`;
+                        isSearching = false;
+                        return;
+                    }
+
+                    if (arrayData[pos] < targetValue) {
+                        searchStatus.innerText = `Karena nilai indeks [${pos}] yaitu ${arrayData[pos]} < ${targetValue}, geser batas Low ke atas.`;
+                        low = pos + 1;
+                    } else {
+                        searchStatus.innerText = `Because nilai indeks [${pos}] yaitu ${arrayData[pos]} > ${targetValue}, geser batas High ke bawah.`;
+                        high = pos - 1;
+                    }
+                    await wait(600);
+                }
+                searchStatus.innerText = "Komputer selesai memproses formula. Angka tidak ditemukan.";
+            }
+            isSearching = false;
+        }
+
+        // Event Listener Kontrol
+        searchAlgo.addEventListener('change', initGame);
+        playMode.addEventListener('change', initGame);
+        regenBtn.addEventListener('click', initGame);
+        startCompBtn.addEventListener('click', runComputerSearch);
+
+        // Inisialisasi Game
+        initGame();
+    </script>
+</body>
+</html>
